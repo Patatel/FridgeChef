@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/ingredients.dart';
 import '../services/ia_service.dart';
+import 'load.dart'; // Assure-toi que la page LoadingScreen est bien importée
 
 class IngredientsScreen extends StatefulWidget {
   const IngredientsScreen({Key? key}) : super(key: key);
@@ -15,9 +16,21 @@ class _IngredientsScreenState extends State<IngredientsScreen> {
   bool _isLoading = false;
 
   final List<String> _suggestedIngredients = [
-    'Œufs', 'Lait', 'Farine', 'Sucre', 'Beurre',
-    'Poulet', 'Tomates', 'Oignons', 'Ail', 'Pommes de terre',
-    'Carottes', 'Riz', 'Pâtes', 'Pain', 'Fromage'
+    'Oeufs',
+    'Lait',
+    'Farine',
+    'Sucre',
+    'Beurre',
+    'Poulet',
+    'Tomates',
+    'Oignons',
+    'Ail',
+    'Pommes de terre',
+    'Carottes',
+    'Riz',
+    'Pâtes',
+    'Pain',
+    'Fromage'
   ];
 
   @override
@@ -27,7 +40,8 @@ class _IngredientsScreenState extends State<IngredientsScreen> {
   }
 
   void _addIngredient(String ingredient) {
-    if (ingredient.trim().isNotEmpty && !_ingredients.contains(ingredient.trim())) {
+    if (ingredient.trim().isNotEmpty &&
+        !_ingredients.contains(ingredient.trim())) {
       setState(() {
         _ingredients.add(ingredient.trim());
         _ingredientController.clear();
@@ -56,16 +70,18 @@ class _IngredientsScreenState extends State<IngredientsScreen> {
     try {
       final recipeService = RecipeAIService();
       final recipes = await recipeService.getRecipeSuggestions(_ingredients);
-      
+
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
-        
-        Navigator.pushNamed(
-          context, 
-          '/recipes',
-          arguments: recipes,
+
+        // Navigation vers la page LoadingScreen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LoadingScreen(selectedIngredients: _ingredients),
+          ),
         );
       }
     } catch (e) {
@@ -94,43 +110,23 @@ class _IngredientsScreenState extends State<IngredientsScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Entrée d'ingrédients
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _ingredientController,
-                    decoration: InputDecoration(
-                      hintText: 'Ajouter un ingrédient',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                    ),
-                    onSubmitted: (value) => _addIngredient(value),
-                  ),
+            TextField(
+              controller: _ingredientController,
+              decoration: InputDecoration(
+                hintText: 'Ajouter un ingrédient',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(width: 10),
-                IconButton(
-                  icon: const Icon(Icons.add_circle),
-                  color: Colors.green.shade700,
-                  iconSize: 40,
-                  onPressed: () => _addIngredient(_ingredientController.text),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.camera_alt),
-                  color: Colors.green.shade700,
-                  iconSize: 40,
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Fonctionnalité de scan à venir dans la prochaine version')),
-                    );
-                  },
-                ),
-              ],
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                suffixIcon: Icon(Icons.restaurant_menu,
+                    color: Colors.green.shade700), // Optionnel: une petite icône déco
+              ),
+              onSubmitted: (value) => _addIngredient(value),
             ),
+
             const SizedBox(height: 20),
-            
+
             // Suggestions d'ingrédients courants
             const Text(
               'Ingrédients courants',
@@ -151,9 +147,9 @@ class _IngredientsScreenState extends State<IngredientsScreen> {
                 );
               }).toList(),
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Liste des ingrédients ajoutés
             const Text(
               'Ingrédients disponibles',
@@ -165,35 +161,49 @@ class _IngredientsScreenState extends State<IngredientsScreen> {
             const SizedBox(height: 10),
             Expanded(
               child: _ingredients.isEmpty
-                ? Center(
-                    child: Text(
-                      'Aucun ingrédient ajouté',
-                      style: TextStyle(color: Colors.grey.shade600),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: _ingredients.length,
-                    itemBuilder: (context, index) {
-                      final ingredient = _ingredients[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          title: Text(ingredient),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _removeIngredient(ingredient),
+                  ? Center(
+                      child: Text(
+                        'Aucun ingrédient ajouté',
+                        style: TextStyle(color: Colors.grey.shade600),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _ingredients.length,
+                      itemBuilder: (context, index) {
+                        final ingredient = _ingredients[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: ListTile(
+                            title: Text(ingredient),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _removeIngredient(ingredient),
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
+                        );
+                      },
+                    ),
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Bouton pour trouver des recettes
             ElevatedButton(
-              onPressed: _isLoading ? null : _findRecipes,
+              onPressed: _isLoading ? null : () {
+                if (_ingredients.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Ajoutez au moins un ingrédient')),
+                  );
+                  return;
+                }
+                // Naviguer vers la page de chargement en passant la liste des ingrédients sélectionnés
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => LoadingScreen(selectedIngredients: _ingredients),
+                  ),
+                );
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green.shade700,
                 foregroundColor: Colors.white,
